@@ -10,15 +10,9 @@ const { Ollama } = require("@langchain/community/llms/ollama");
 const cors = require("cors");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = 5000; // Fixed port for localhost
 
-// Enable CORS for all origins, or use specific frontend URL (e.g., "https://chatbot-qa-cnmg.vercel.app")
-app.use(cors({
-    origin: "*",  // Or specify frontend URL
-    methods: ["POST", "GET", "DELETE"],
-    credentials: true,
-}));
-
+app.use(cors({ origin: "http://localhost:3000" })); // Allow frontend access from localhost:3000
 app.use(express.json());
 
 // Ensure "uploads" directory exists
@@ -33,8 +27,8 @@ const upload = multer({
 
 // Store trained vector stores
 const vectorStores = {};
-const embeddings = new OllamaEmbeddings({ model: "nomic-embed-text" }); // Faster embeddings
-const llm = new Ollama({ model: "llama3" }); // Use LLaMA 3 for response generation
+const embeddings = new OllamaEmbeddings({ model: "nomic-embed-text" });
+const llm = new Ollama({ model: "llama3" });
 
 // File Upload Route
 app.post("/upload", upload, async (req, res) => {
@@ -51,21 +45,12 @@ app.post("/upload", upload, async (req, res) => {
         await Promise.allSettled(req.files.map(async (file) => {
             try {
                 console.log(`⏳ Processing: ${file.originalname}`);
-                const startTime = Date.now();
-
-                // Step 1: Extract Text from PDF
                 const pdfData = await pdfParse(file.buffer);
-
-                // Step 2: Split Text into smaller chunks
                 const docs = await splitter.createDocuments([pdfData.text]);
-
-                // Step 3: Generate Embeddings for each chunk
                 const vectorStore = await MemoryVectorStore.fromDocuments(docs, embeddings);
 
-                // Store vector data in memory
                 vectorStores[file.originalname] = vectorStore;
-                console.log(`✅ Processed ${file.originalname} in ${(Date.now() - startTime) / 1000}s`);
-
+                console.log(`✅ Processed ${file.originalname}`);
             } catch (fileError) {
                 console.error(`❌ Error processing ${file.originalname}:`, fileError);
             }
@@ -77,7 +62,7 @@ app.post("/upload", upload, async (req, res) => {
     }
 });
 
-// Optimized Ask Question Route
+// Ask Question Route
 app.post("/ask", async (req, res) => {
     try {
         const { question } = req.body;
@@ -85,7 +70,6 @@ app.post("/ask", async (req, res) => {
 
         console.log(`🔍 Searching across PDFs...`);
 
-        // Step 1: Parallel Similarity Search (Top 3 results per file)
         const searchResults = await Promise.all(
             Object.entries(vectorStores).map(async ([filename, vectorStore]) => {
                 const results = await vectorStore.similaritySearch(question, 3);
@@ -93,22 +77,15 @@ app.post("/ask", async (req, res) => {
             })
         );
 
-        // Step 2: Filter out empty results
         const bestResults = searchResults.filter(Boolean);
         if (bestResults.length === 0) {
             return res.status(200).json({ answer: "No relevant information found." });
         }
 
-        // Step 3: Build Context (Limit to top 3 results & increase context size)
-        const context = bestResults
-            .slice(0, 3)
-            .flatMap(result => result.texts)
-            .join("\n\n")
-            .slice(0, 1200); // Limit context to 1200 characters
+        const context = bestResults.slice(0, 3).flatMap(result => result.texts).join("\n\n").slice(0, 1200);
 
         console.log("🧠 Context prepared for LLaMA prompt.");
 
-        // Step 4: LLaMA Prompt
         const prompt = `
         You are an intelligent AI assistant. Use the context below to answer accurately.
 
@@ -121,11 +98,8 @@ app.post("/ask", async (req, res) => {
         `;
 
         console.log(`📖 Sending prompt to LLaMA...`);
-
-        // Step 5: LLaMA API Call
         const response = await llm.call(prompt);
 
-        // Step 6: Respond with trimmed answer
         res.status(200).json({ answer: response.trim() || "Sorry, I couldn't find an answer." });
 
     } catch (error) {
@@ -139,7 +113,7 @@ app.get("/debug", (req, res) => {
     res.json({ stored_files: Object.keys(vectorStores) });
 });
 
-// Start the Server
-app.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
+// Start the Server on Localhost
+app.listen(PORT, "127.0.0.1", () => {
+    console.log(`🚀 Server running on http://127.0.0.1:${PORT}`);
 });
