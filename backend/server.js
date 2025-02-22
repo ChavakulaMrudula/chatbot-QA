@@ -26,7 +26,8 @@ const upload = multer({
 }).array("file", 5); // Max 5 files at a time
 
 // Ngrok URL for Ollama (Replace with your actual Ngrok URL)
-const OLLAMA_API_URL = "https://your-ngrok-url.ngrok.io";
+const OLLAMA_API_URL = "https://cf53-117-250-210-33.ngrok-free.app";
+
 
 // Store trained vector stores
 const vectorStores = {};
