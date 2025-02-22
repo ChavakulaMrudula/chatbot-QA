@@ -12,15 +12,8 @@ const cors = require("cors");
 const app = express();
 const PORT = 5000;
 
-// CORS configuration to allow only your frontend URL
-const corsOptions = {
-  origin: "https://chatbot-nu-red.vercel.app",  // Frontend URL
-  methods: "GET,POST,DELETE",                   // Allowed methods
-  allowedHeaders: "Content-Type,Authorization", // Allowed headers
-};
-app.use(cors(corsOptions)); // Apply CORS middleware
-
 app.use(express.json());
+app.use(cors()); 
 
 // Ensure "uploads" directory exists
 const uploadDir = path.join(__dirname, "uploads");
