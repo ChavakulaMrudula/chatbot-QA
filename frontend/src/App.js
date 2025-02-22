@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./App.css";
-const API_BASE_URL = "https://chatbot-qa-1-5bjy.onrender.com";
+
 const App = () => {
   const [files, setFiles] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -18,7 +18,7 @@ const App = () => {
   // Fetch uploaded PDFs from the backend
   const fetchFiles = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/debug`);
+      const res = await axios.get("http://localhost:5000/debug");
       setFiles(res.data.stored_files || []);
     } catch (error) {
       console.error("Error fetching files", error);
@@ -33,7 +33,7 @@ const App = () => {
     }
 
     try {
-      await axios.post(`${API_BASE_URL}/upload`, formData,{
+      await axios.post("http://localhost:5000/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       alert("Upload Complete. Processing in background.");
@@ -50,7 +50,7 @@ const App = () => {
     setChat([...chat, { role: "user", text: question }]);
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/ask`,{
+      const res = await axios.post("http://localhost:5000/ask", {
         filename: selectedFile,
         question,
       });
@@ -73,7 +73,7 @@ const App = () => {
     if (!confirmDelete) return;
 
     try {
-      await axios.delete(`${API_BASE_URL}/delete`, {
+      await axios.delete("http://localhost:5000/delete", {
         data: { filename },
       });
       alert(`${filename} deleted successfully`);
