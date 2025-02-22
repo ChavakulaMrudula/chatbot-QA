@@ -25,10 +25,13 @@ const upload = multer({
     limits: { fileSize: 20 * 1024 * 1024 }, // 20MB limit
 }).array("file", 5); // Max 5 files at a time
 
+// Ngrok URL for Ollama (Replace with your actual Ngrok URL)
+const OLLAMA_API_URL = "https://your-ngrok-url.ngrok.io";
+
 // Store trained vector stores
 const vectorStores = {};
-const embeddings = new OllamaEmbeddings({ model: "nomic-embed-text" });
-const llm = new Ollama({ model: "llama3" });
+const embeddings = new OllamaEmbeddings({ model: "nomic-embed-text", baseUrl: OLLAMA_API_URL });
+const llm = new Ollama({ model: "llama3", baseUrl: OLLAMA_API_URL });
 
 // File Upload Route
 app.post("/upload", upload, async (req, res) => {
@@ -65,14 +68,17 @@ app.post("/upload", upload, async (req, res) => {
 // Ask Question Route
 app.post("/ask", async (req, res) => {
     try {
-        const { question } = req.body;
+        const { question, files } = req.body;
         if (!question) return res.status(400).json({ error: "Please provide a question." });
 
-        console.log(`🔍 Searching across PDFs...`);
+        console.log(`🔍 Searching across selected PDFs...`);
+
+        const selectedFiles = files && files.length > 0 ? files : Object.keys(vectorStores);
 
         const searchResults = await Promise.all(
-            Object.entries(vectorStores).map(async ([filename, vectorStore]) => {
-                const results = await vectorStore.similaritySearch(question, 3);
+            selectedFiles.map(async (filename) => {
+                if (!vectorStores[filename]) return null;
+                const results = await vectorStores[filename].similaritySearch(question, 3);
                 return results.length ? { filename, texts: results.map(r => r.pageContent) } : null;
             })
         );
@@ -105,6 +111,27 @@ app.post("/ask", async (req, res) => {
     } catch (error) {
         console.error("❌ Error processing question:", error);
         res.status(500).json({ error: "Failed to process the question.", details: error.message });
+    }
+});
+
+// Delete a specific PDF from memory
+app.delete("/delete", async (req, res) => {
+    try {
+        const { filename } = req.body;
+        if (!filename) return res.status(400).json({ error: "Please provide a filename." });
+
+        if (!vectorStores[filename]) {
+            return res.status(404).json({ error: "File not found in memory." });
+        }
+
+        delete vectorStores[filename];
+
+        console.log(`🗑️ Deleted ${filename} from memory.`);
+        res.status(200).json({ message: `${filename} has been deleted.` });
+
+    } catch (error) {
+        console.error("❌ Error deleting file:", error);
+        res.status(500).json({ error: "Failed to delete file." });
     }
 });
 
