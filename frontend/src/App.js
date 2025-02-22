@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./App.css";
-const API_BASE_URL = "https://chatbot-qa-tk0f.onrender.com";
+const API_BASE_URL = "https://chatbot-qa-1-5bjy.onrender.com";
 const App = () => {
   const [files, setFiles] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
