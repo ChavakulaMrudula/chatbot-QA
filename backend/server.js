@@ -10,10 +10,12 @@ const { Ollama } = require("@langchain/community/llms/ollama");
 const cors = require("cors");
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
+
+// Enable CORS for all origins, or use specific frontend URL (e.g., "https://chatbot-qa-cnmg.vercel.app")
+app.use(cors({ origin: "*"}));  // You can replace '*' with specific frontend URL
 
 app.use(express.json());
-app.use(cors()); 
 
 // Ensure "uploads" directory exists
 const uploadDir = path.join(__dirname, "uploads");
@@ -30,7 +32,7 @@ const vectorStores = {};
 const embeddings = new OllamaEmbeddings({ model: "nomic-embed-text" }); // Faster embeddings
 const llm = new Ollama({ model: "llama3" }); // Use LLaMA 3 for response generation
 
-// ✅ File Upload Route
+// File Upload Route
 app.post("/upload", upload, async (req, res) => {
     try {
         if (!req.files || req.files.length === 0) {
@@ -40,14 +42,14 @@ app.post("/upload", upload, async (req, res) => {
         console.log("📂 Files received:", req.files.map(file => file.originalname));
         res.status(202).json({ message: "Files received. Processing in the background." });
 
-        const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 1000, chunkOverlap: 200 }); // Increase chunk size
+        const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 1000, chunkOverlap: 200 });
 
         await Promise.allSettled(req.files.map(async (file) => {
             try {
                 console.log(`⏳ Processing: ${file.originalname}`);
                 const startTime = Date.now();
 
-                // Step 1: Extract Text
+                // Step 1: Extract Text from PDF
                 const pdfData = await pdfParse(file.buffer);
 
                 // Step 2: Split Text into smaller chunks
@@ -71,7 +73,7 @@ app.post("/upload", upload, async (req, res) => {
     }
 });
 
-// ✅ Optimized Ask Question Route
+// Optimized Ask Question Route
 app.post("/ask", async (req, res) => {
     try {
         const { question } = req.body;
@@ -79,30 +81,30 @@ app.post("/ask", async (req, res) => {
 
         console.log(`🔍 Searching across PDFs...`);
 
-        // ✅ Step 1: Parallel Similarity Search (Top 3 results per file)
+        // Step 1: Parallel Similarity Search (Top 3 results per file)
         const searchResults = await Promise.all(
             Object.entries(vectorStores).map(async ([filename, vectorStore]) => {
-                const results = await vectorStore.similaritySearch(question, 3); // Get top 3 results
+                const results = await vectorStore.similaritySearch(question, 3);
                 return results.length ? { filename, texts: results.map(r => r.pageContent) } : null;
             })
         );
 
-        // ✅ Step 2: Filter out empty results
+        // Step 2: Filter out empty results
         const bestResults = searchResults.filter(Boolean);
         if (bestResults.length === 0) {
             return res.status(200).json({ answer: "No relevant information found." });
         }
 
-        // ✅ Step 3: Build Context (Limit to top 3 results & increase context size)
+        // Step 3: Build Context (Limit to top 3 results & increase context size)
         const context = bestResults
-            .slice(0, 3) // Use top 3 relevant documents
+            .slice(0, 3)
             .flatMap(result => result.texts)
             .join("\n\n")
             .slice(0, 1200); // Limit context to 1200 characters
 
         console.log("🧠 Context prepared for LLaMA prompt.");
 
-        // ✅ Step 4: LLaMA Prompt
+        // Step 4: LLaMA Prompt
         const prompt = `
         You are an intelligent AI assistant. Use the context below to answer accurately.
 
@@ -116,10 +118,10 @@ app.post("/ask", async (req, res) => {
 
         console.log(`📖 Sending prompt to LLaMA...`);
 
-        // ✅ Step 5: LLaMA API Call
+        // Step 5: LLaMA API Call
         const response = await llm.call(prompt);
 
-        // ✅ Step 6: Respond with trimmed answer
+        // Step 6: Respond with trimmed answer
         res.status(200).json({ answer: response.trim() || "Sorry, I couldn't find an answer." });
 
     } catch (error) {
@@ -128,35 +130,12 @@ app.post("/ask", async (req, res) => {
     }
 });
 
-// ✅ Delete File Route
-app.delete("/delete", async (req, res) => {
-    try {
-        const { filename } = req.body;
-        if (!filename) {
-            return res.status(400).json({ error: "Please provide a filename to delete." });
-        }
-
-        if (!vectorStores[filename]) {
-            return res.status(404).json({ error: "File not found in memory." });
-        }
-
-        // Remove file from vector store
-        delete vectorStores[filename];
-        console.log(`🗑️ Deleted: ${filename}`);
-
-        res.status(200).json({ message: `File '${filename}' deleted successfully.` });
-    } catch (error) {
-        console.error("❌ Error deleting file:", error);
-        res.status(500).json({ error: "Failed to delete the file." });
-    }
-});
-
-// ✅ Debug Route - Lists all trained PDFs
+// Debug Route - Lists all trained PDFs
 app.get("/debug", (req, res) => {
     res.json({ stored_files: Object.keys(vectorStores) });
 });
 
-// ✅ Start the Server
-app.listen(PORT, () => {
+// Start the Server
+app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
