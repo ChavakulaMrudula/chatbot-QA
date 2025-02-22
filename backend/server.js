@@ -13,7 +13,11 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Enable CORS for all origins, or use specific frontend URL (e.g., "https://chatbot-qa-cnmg.vercel.app")
-app.use(cors({ origin: "*"}));  // You can replace '*' with specific frontend URL
+app.use(cors({
+    origin: "*",  // Or specify frontend URL
+    methods: ["POST", "GET", "DELETE"],
+    credentials: true,
+}));
 
 app.use(express.json());
 
