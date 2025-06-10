@@ -37,7 +37,13 @@ COPY . .
 EXPOSE 5001
 CMD ["node", "index.js"]
 ```
-### some modifications made in controllers/authController.js
+##### Dependencies neeeded to be installed
+* Updates package lists (apt-get update).
+* Installs lsb-release (for OS info) and wget (for downloading files).
+* Adds PostgreSQL's official repository key.
+* Sets up the PostgreSQL 15 repository.
+* Installs postgresql-client-15(tools to interact with PostgreSQL databases).
+### Some Modifications Made In controllers/authController.js
 #### Use a Compatible bcrypt Alternative 
 Instead of bcrypt, you can use bcryptjs, which is a pure JavaScript implementation and doesn't rely on native binaries. This avoids architecture issues entirely. 
 *  Uninstall bcrypt
@@ -52,3 +58,10 @@ Instead of bcrypt, you can use bcryptjs, which is a pure JavaScript implementati
   ``` bash
    const bcrypt = require('bcryptjs'); // Replace `bcrypt` with `bcryptjs`
   ```
+## Docker-compose File Documentation
+* create docker-compose.yml in the main project folder
+* i have created docker-compose file defines that three services
+    * ##### backend(Node.js app)
+    * ##### Frontend (React app)
+    * ##### Postgres (Database)
+* They are connected via a shared network (souloxy-network) and use volumes for persistent storage.
