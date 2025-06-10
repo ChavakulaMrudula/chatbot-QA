@@ -40,10 +40,15 @@ CMD ["node", "index.js"]
 ### some modifications made in controllers/authController.js
 #### Use a Compatible bcrypt Alternative 
 Instead of bcrypt, you can use bcryptjs, which is a pure JavaScript implementation and doesn't rely on native binaries. This avoids architecture issues entirely. 
-• Uninstall bcrypt 
-                          npm uninstall bcrypt 
-• Install bcryptjs:  
-                               npm install bcryptjs 
-• Update your code to use bcryptjs instead of bcrypt. The API is the same, so you only need to 
-change the require statement:  
-                          const bcrypt = require('bcryptjs'); // Replace `bcrypt` with `bcryptjs`
+*  Uninstall bcrypt
+   ```bash 
+      npm uninstall bcrypt
+   ```
+* Install bcryptjs
+  ```bash
+  npm install bcryptjs
+  ```
+* just modify the import of authController
+  ``` bash
+   const bcrypt = require('bcryptjs'); // Replace `bcrypt` with `bcryptjs`
+  ```
