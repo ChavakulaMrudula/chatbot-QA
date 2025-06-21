@@ -58,6 +58,7 @@ Instead of bcrypt, you can use bcryptjs, which is a pure JavaScript implementati
   ``` bash
    const bcrypt = require('bcryptjs'); // Replace `bcrypt` with `bcryptjs`
   ```
+
 ## Docker-compose File Documentation
 * create docker-compose.yml in the main project folder
 * i have created docker-compose file defines that three services
